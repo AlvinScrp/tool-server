@@ -1,0 +1,66 @@
+name: tool-server-app Nuxt.js Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    - run: npm ci
+    - run: npm run test
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    - run: npm ci
+    - run: npm run build
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-files
+        path: .output
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    # environment: production
+    steps:
+    - uses: actions/checkout@v4
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: build-files
+        path: .output
+        
+    - name: Deploy to server
+      run: |
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key
+        chmod 600 private_key
+        rsync -avz --delete -e "ssh -i private_key -o StrictHostKeyChecking=no" \
+          .output/ ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:${{ secrets.REMOTE_PATH }}
+        rm private_key
+        
+    - name: Restart services
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          cd ${{ secrets.REMOTE_PATH }}
+          npm install --production --silent
+          pm2 reload ecosystem.config.js --update-env
+          echo "Deployment completed successfully"
