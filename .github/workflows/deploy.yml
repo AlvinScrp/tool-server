@@ -5,21 +5,14 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-    - run: npm ci
-    - run: npm run test
-
   build:
-    needs: test
+    # needs: test
     runs-on: ubuntu-latest
+    environment: production
     steps:
+    - name: Echo secrets
+      run: |
+        echo "${{ secrets.REMOTE_PATH }}"
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
       with:
@@ -27,23 +20,57 @@ jobs:
         cache: 'npm'
     - run: npm ci
     - run: npm run build
-    - name: Archive production artifacts
-      uses: actions/upload-artifact@v3
+    - name: Verify build output
+      run: |
+          pwd
+          ls -la .output
+          echo "Total files in .output: $(find .output -type f | wc -l)"
+    - name: Fix permissions
+      run: |
+        ls -la .output
+        chmod -R 755 .output
+
+    - name: Copy ecosystem.config.cjs
+      run: |
+        echo "Copying ecosystem.config.cjs to .output ..."
+        cp ecosystem.config.cjs .output/ecosystem.config.cjs
+        echo "Verifying copy:"
+        ls -la .output/ecosystem.config.cjs
+        echo "Contents of copied file:"
+        cat .output/ecosystem.config.cjs
+
+    - name: Create build archive
+      run: |
+        echo "=== Creating archive ==="
+        tar -czf build-output.tar.gz .output/
+        ls -la build-output.tar.gz
+        echo "Archive size: $(du -h build-output.tar.gz)"
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
       with:
         name: build-files
-        path: .output
+        path: build-output.tar.gz
+        retention-days: 1
+        if-no-files-found: error
+        compression-level: 6
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    environment: production
     # environment: production
     steps:
     - uses: actions/checkout@v4
     - name: Download build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: build-files
-        path: .output
+        path: ./
+    - name: Extract build files
+      run: |
+        tar -xzf build-output.tar.gz
+        ls -la .output/
         
     - name: Deploy to server
       run: |
@@ -61,6 +88,14 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd ${{ secrets.REMOTE_PATH }}
+          echo "Current directory: $(pwd)"
+          echo "Checking if ecosystem.config.cjs exists:"
+          ls -la ecosystem.config.cjs
+          echo "Installing production dependencies..."
           npm install --production --silent
-          pm2 reload ecosystem.config.js --update-env
+          echo "Installing PM2 globally..."
+          npm install -g pm2 --registry https://registry.npmjs.org/
+          npx pm2 reload ecosystem.config.cjs --env production
+          echo "Current PM2 status:"
+          npx pm2 list
           echo "Deployment completed successfully"

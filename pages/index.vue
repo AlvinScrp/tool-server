@@ -14,7 +14,7 @@
         @click="extract" 
         class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
       >
-        提取内容
+        提取内容✅
       </button>
     </div>
 
@@ -76,10 +76,9 @@
 </template>
 
 <script setup>
-// const url = ref('https://juejin.cn/post/7505989436360065087');
-// const url =ref('https://baijiahao.baidu.com/s?id=1836633373376118049');
-// const url =ref('http://xhslink.com/a/H2jBYhDUYUbgb');
-const url =ref('http://xhslink.com/a/DFK9X2VTvUbgb');
+import { ref } from 'vue'
+
+const url = ref('');
 const result = ref(null);
 const loading = ref(false);
 const error = ref('');

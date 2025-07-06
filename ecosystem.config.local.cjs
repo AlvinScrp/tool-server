@@ -2,14 +2,14 @@ module.exports = {
   apps: [
     {
       name: 'tool-server-app',
-      port: '3000',
       exec_mode: 'cluster',
-      instances: 'max',
+      instances: 1,
       script: './.output/server/index.mjs',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000
+        NITRO_PORT: 3003,
+        NITRO_HOST: '0.0.0.0',
       }
     }
   ]
-}
+} 
