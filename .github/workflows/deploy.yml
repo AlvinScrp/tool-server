@@ -95,7 +95,7 @@ jobs:
           npm install --production --silent
           echo "Installing PM2 globally..."
           npm install -g pm2 --registry https://registry.npmjs.org/
-          npx pm2 reload ecosystem.config.cjs --env production
+          npx pm2 reload ecosystem.config.cjs
           echo "Current PM2 status:"
           npx pm2 list
           echo "Deployment completed successfully"
