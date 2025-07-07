@@ -4,7 +4,7 @@ module.exports = {
       name: 'tool-server-app',
       exec_mode: 'cluster',
       instances: 1,
-      script: './/server/index.mjs',
+      script: './server/index.mjs',
       env: {
         NODE_ENV: 'production',
         NITRO_PORT: 3003,
