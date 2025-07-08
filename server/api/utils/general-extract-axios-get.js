@@ -1,7 +1,7 @@
-const axios = require('axios');
-const { load } = require('cheerio');
+import axios from 'axios';
+import { load } from 'cheerio';
 
-const extractGeneralAxiosGet = async (url) => {
+export const extractGeneralAxiosGet = async (url) => {
   try {
     const response = await axios.get(url, {
       headers: {
@@ -51,6 +51,4 @@ const extractGeneralAxiosGet = async (url) => {
       errorMessage: error.message
     };
   }
-};
-
-module.exports = { extractGeneralAxiosGet }; 
+}; 

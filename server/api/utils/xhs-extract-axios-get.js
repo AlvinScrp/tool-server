@@ -1,7 +1,7 @@
-const axios = require('axios');
-const { load } = require('cheerio');
+import axios from 'axios';
+import { load } from 'cheerio';
 
-const extractXiaohongshuAxiosGet = async (url) => {
+export const extractXiaohongshuAxiosGet = async (url) => {
   try {
     const response = await axios.get(url, {
       headers: {
@@ -14,21 +14,15 @@ const extractXiaohongshuAxiosGet = async (url) => {
         'Referer': 'https://www.xiaohongshu.com/',
       }
     });
-    // console.log(response.data);
     const $ = load(response.data);
 
-    // 查找包含 window.__INITIAL_STATE__ 的 script 标签
     let noteDetailMap = null;
     $('script').each((index, element) => {
       const scriptContent = $(element).html();
 
       if (scriptContent && scriptContent.includes('window.__INITIAL_STATE__')) {
-        // console.log(`====>Found script with __INITIAL_STATE__`);
         noteDetailMap = extractNoteDetailMapPrecise(scriptContent, 'noteDetailMap')
-        // noteDetailMap = noteDetailMapPrecise
-        // console.log(`====>noteDetailMap: ${JSON.stringify(noteDetailMap)}`);
         return false
-
       }
     });
 
@@ -58,26 +52,21 @@ const extractXiaohongshuAxiosGet = async (url) => {
 };
 
 function extractNoteDetailMapPrecise(jsonString, searchKey) {
-  // const searchKey = '"noteDetailMap"';
   const startIndex = jsonString.indexOf(searchKey);
 
   if (startIndex === -1) return null;
 
-  // 找到冒号位置
   const colonIndex = jsonString.indexOf(':', startIndex);
   if (colonIndex === -1) return null;
 
-  // 跳过空白字符
   let valueStart = colonIndex + 1;
   while (valueStart < jsonString.length && /\s/.test(jsonString[valueStart])) {
     valueStart++;
   }
 
-  // 确定值的类型并提取
   const firstChar = jsonString[valueStart];
 
   if (firstChar === '{') {
-    // 对象类型，需要匹配括号
     const extracted = extractObjectFromString(jsonString, valueStart);
     try {
       return JSON.parse(extracted);
@@ -85,7 +74,6 @@ function extractNoteDetailMapPrecise(jsonString, searchKey) {
       return null;
     }
   } else if (firstChar === '[') {
-    // 数组类型
     const extracted = extractArrayFromString(jsonString, valueStart);
     try {
       return JSON.parse(extracted);
@@ -93,10 +81,8 @@ function extractNoteDetailMapPrecise(jsonString, searchKey) {
       return null;
     }
   } else if (firstChar === '"') {
-    // 字符串类型
     return extractStringFromString(jsonString, valueStart);
   } else {
-    // 数字、布尔值、null
     return extractPrimitiveFromString(jsonString, valueStart);
   }
 }
@@ -162,7 +148,7 @@ function extractArrayFromString(str, startIndex) {
 }
 
 function extractStringFromString(str, startIndex) {
-  let i = startIndex + 1; // 跳过开始的引号
+  let i = startIndex + 1;
   let escaped = false;
 
   while (i < str.length) {
@@ -173,7 +159,7 @@ function extractStringFromString(str, startIndex) {
     } else if (char === '\\') {
       escaped = true;
     } else if (char === '"') {
-      return str.substring(startIndex + 1, i); // 返回不含引号的字符串
+      return str.substring(startIndex + 1, i);
     }
     i++;
   }
@@ -193,13 +179,8 @@ function extractPrimitiveFromString(str, startIndex) {
   }
 }
 
-
-// 方法1：完整解析JSON后提取（推荐）
 function extractNoteInfo(data) {
   try {
-    // const data = JSON.parse(jsonString);
-
-    // 获取第一个笔记对象（因为外层是以ID为key的对象）
     const noteKey = Object.keys(data)[0];
     const noteData = data[noteKey];
 
@@ -209,21 +190,17 @@ function extractNoteInfo(data) {
 
     const note = noteData.note;
 
-    // 提取基本信息
     const result = {
       noteId: note.noteId || '',
       title: note.title || '',
       desc: note.desc || '',
       video: '',
       images: [],
-
     };
 
-    // 提取视频URL（返回单个URL字符串）
     if (note.video && note.video.media && note.video.media.stream) {
       const streams = note.video.media.stream;
 
-      // 优先级：h264 > h265 > h266 > av1
       let videoUrl = null;
 
       if (streams.h264 && streams.h264.length > 0) {
@@ -239,30 +216,19 @@ function extractNoteInfo(data) {
       result.video = videoUrl;
     }
 
-    // 提取图片URL并去重
     if (note.imageList && Array.isArray(note.imageList)) {
-      const imageUrls = new Set(); // 使用Set来去重
+      const imageUrls = new Set();
 
       note.imageList.forEach(img => {
         imageUrls.add(img.urlDefault || img.urlPre || '')
       });
 
-      // 转换为数组并过滤空值
       result.images = Array.from(imageUrls).filter(url => url && url.trim() !== '');
     }
 
-
-
     return result;
-
   } catch (error) {
-    console.error('JSON解析失败:', error);
+    console.error('Error extracting note info:', error);
     return null;
   }
-}
-
-
-
-
-
-module.exports = { extractXiaohongshuAxiosGet }; 
+} 

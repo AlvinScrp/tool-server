@@ -1,8 +1,8 @@
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 puppeteer.use(StealthPlugin());
 
-const extractXiaohongshuPuppeteer = async (url) => {
+export const extractXiaohongshuPuppeteer = async (url) => {
   const browser = await puppeteer.launch({
     headless: 'new',
     args: [
@@ -29,38 +29,31 @@ const extractXiaohongshuPuppeteer = async (url) => {
       const title = document.title;
       const videoList = Array.from(document.querySelectorAll('video')).map(v => v.src).filter(Boolean);
       const sourceBannerList = Array.from(document.querySelectorAll('img')).map(img => img.src)
-      // .filter((src) => !src.startsWith('data:image'))
       .filter((src)=>src.includes('sns-webpic-qc.xhscdn.com'));
-      //todo 去重
-    const  bannerList= [...new Set(sourceBannerList)];
-      // 提取小红书笔记内容
+      const bannerList = [...new Set(sourceBannerList)];
+      
       let content = '';
       let noteTitle = '';
       let noteDesc = '';
       
-      // 提取标题
       const titleElement = document.querySelector('#detail-title');
       if (titleElement) {
         noteTitle = titleElement.textContent?.trim() || '';
       }
       
-      // 提取描述内容
       const descElement = document.querySelector('#detail-desc');
       if (descElement) {
         noteDesc = descElement.textContent?.trim() || '';
       }
       
-      // 组合内容
       if (noteTitle || noteDesc) {
-        // content = `${noteTitle}\n\n${noteDesc}`.trim();
-        content =noteDesc.trim();
+        content = noteDesc.trim();
       }
       
       return {
         title: noteTitle || title,
         videoList,
         content,
-        // banner,
         bannerList,
         errorMessage: ''
       };
@@ -69,8 +62,6 @@ const extractXiaohongshuPuppeteer = async (url) => {
   } catch (error) {
     return {
       title: '',
-      // video: '',
-      // banner: '',
       videoList: [],
       bannerList: [],
       content: '',
@@ -79,6 +70,4 @@ const extractXiaohongshuPuppeteer = async (url) => {
   } finally {
     await browser.close();
   }
-};
-
-module.exports = { extractXiaohongshuPuppeteer }; 
+}; 
