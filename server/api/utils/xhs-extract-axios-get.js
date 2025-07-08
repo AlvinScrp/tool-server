@@ -32,7 +32,7 @@ export const extractXiaohongshuAxiosGet = async (url) => {
         title: fullResult?.title,
         content: fullResult?.desc,
         videoList: [fullResult?.video || ''].filter(item=>item&&item.trim()!=''),
-        bannerList: [...new Set(fullResult?.images || [])],
+        bannerList: fullResult?.video?[]:[...new Set(fullResult?.images || [])],
         errorMessage: ''
       };
     } else {
