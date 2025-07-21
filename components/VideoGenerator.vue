@@ -62,7 +62,7 @@ import { ref } from 'vue'
 
 const videoPrompt = ref('一只猫在草地上奔跑')
 const imageUrl = ref('https://cdn.translate.alibaba.com/r/wanx-demo-1.png')
-const apiKey = ref('sk-6490712486f94d5c95a0206f234a34b8')
+const apiKey = ref('')
 const videoLoading = ref(false)
 const videoError = ref('')
 const videoResult = ref(null)

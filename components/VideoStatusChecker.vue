@@ -40,7 +40,7 @@
 import { ref } from 'vue'
 
 const statusTaskId = ref('f7410cf4-b2a8-44d1-a88d-ec65a11bbccc')
-const statusApiKey = ref('sk-6490712486f94d5c95a0206f234a34b8')
+const statusApiKey = ref('')
 const statusResult = ref(null)
 const statusLoading = ref(false)
 const statusError = ref('')
