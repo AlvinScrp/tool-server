@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   try {
     console.log('----->generate-video');
     const body = await readBody(event);
-    const { prompt, img_url,api_key } = body;
+    const { prompt, img_url,api_key,model } = body;
     console.log('----->generate-video',JSON.stringify(body));
     
     if (!prompt) {
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const requestBody = {
-      model: "wanx2.1-i2v-turbo",
+      model: model || "wanx2.1-i2v-turbo",
       input: {
         prompt,
         img_url
