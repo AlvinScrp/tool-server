@@ -2,51 +2,42 @@ import axios from 'axios';
 
 export default defineEventHandler(async (event) => {
   try {
-    console.log('----->generate-video');
+    console.log('----->generate-image');
     const body = await readBody(event);
-    const { prompt, img_url,api_key,model } = body;
-    console.log('----->generate-video',JSON.stringify(body));
+    const { prompt, api_key, model, size, n } = body;
+    console.log('----->generate-image', JSON.stringify(body));
     
     if (!prompt) {
       return {
-        video_url: "",
+        image_url: "",
+        task_id: "",
         status: false,
         message: 'Prompt is required'
       };
     }
 
-    if (!img_url) {
-      return {
-        video_url: "",
-        status: false,
-        message: 'Image URL is required'
-      };
-    }
-
- 
-    
     if (!api_key) {
       return {
-        video_url: "",
+        image_url: "",
+        task_id: "",
         status: false,
         message: 'DASHSCOPE_API_KEY is not configured'
       };
     }
 
     const requestBody = {
-      model: model || "wanx2.1-i2v-turbo",
+      model: model || "wanx2.1-t2i-turbo",
       input: {
-        prompt,
-        img_url
+        prompt
       },
       parameters: {
-        resolution: "720P",
-        prompt_extend: true
+        size: size || "1024*1024",
+        n: n || 1
       }
     };
 
     const response = await axios.post(
-      'https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis',
+      'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis',
       requestBody,
       {
         headers: {
@@ -58,18 +49,17 @@ export default defineEventHandler(async (event) => {
     );
 
     const result = response.data;
-    console.log('----->generate-video result',JSON.stringify(result));
+    console.log('----->generate-image result', JSON.stringify(result));
     
-    
-    if (result.code&&result.message) {
+    if (result.code && result.message) {
       return {
-        video_url: "",
+        image_url: "",
+        task_id: "",
         status: false,
-        message: result.message || 'Video generation failed'
+        message: result.message || 'Image generation failed'
       };
     }
 
-    //步骤2：根据任务ID查询结果
     const task_id = result.output.task_id;
     
     const checkTaskStatus = async () => {
@@ -81,57 +71,53 @@ export default defineEventHandler(async (event) => {
 
       return statusResponse.data;
     };
-    //先等待120秒
-    await new Promise(resolve => setTimeout(resolve, 120000));
 
-    // 轮询等待任务完成
-    const maxAttempts = 20; // 最多轮询20次 (5分钟)
+    await new Promise(resolve => setTimeout(resolve, 15000));
+
+    const maxAttempts = 100;
     let attempts = 0;
 
     while (attempts < maxAttempts) {
-      console.log('----->checkTaskStatus',attempts);
+      console.log('----->checkTaskStatus', attempts);
       const statusResult = await checkTaskStatus();
       const status = statusResult.output.task_status;
 
-      // 如果任务完成
       if (status === 'SUCCEEDED') {
         return {
-          video_url: statusResult.output.video_url,
+          image_url: statusResult.output.results[0].url,
+          actual_prompt: statusResult.output.results[0].actual_prompt,
           task_id: task_id,
           status: true,
-          message: "视频生成成功"
+          message: "图片生成成功"
         };
       }
 
-      // 如果任务失败
       if (status === 'FAILED') {
         return {
-          video_url: "",
+          image_url: "",
           task_id: task_id,
           status: false,
-          message: statusResult.output.message || "视频生成失败"
+          message: statusResult.output.message || "图片生成失败"
         };
       }
 
-      // 等待15秒后继续轮询
       if (attempts < maxAttempts - 1) {
-        await new Promise(resolve => setTimeout(resolve, 15000));
+        await new Promise(resolve => setTimeout(resolve, 5000));
       }
       attempts++;
     }
 
-    // 超时处理
     return {
-      video_url: "",
+      image_url: "",
       task_id: task_id,
       status: false,
-      message: "视频生成超时，请稍后重试"
+      message: "图片生成超时，请稍后重试"
     };
     
   } catch (error) {
     return {
-      video_url: "",
-      task_id: task_id,
+      image_url: "",
+      task_id: "",
       status: false,
       message: error.message
     };
