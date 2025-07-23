@@ -96,6 +96,7 @@ const statusLoading = ref(false)
 const imageError = ref('')
 const imageResult = ref(null)
 const currentTaskId = ref('')
+const pollingInterval = ref(null)
 
 async function generateImage() {
   if (!imagePrompt.value) {
@@ -111,6 +112,11 @@ async function generateImage() {
   imageLoading.value = true
   imageError.value = ''
   imageResult.value = null
+  
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
+    pollingInterval.value = null
+  }
 
   try {
     const response = await fetch('/api/generate-image', {
@@ -127,13 +133,15 @@ async function generateImage() {
     })
     
     const data = await response.json()
-    imageResult.value = data
     if (data.task_id) {
       currentTaskId.value = data.task_id
+      startPolling()
+    } else {
+      imageError.value = data.message || '生成失败'
+      imageLoading.value = false
     }
   } catch (e) {
     imageError.value = e.message
-  } finally {
     imageLoading.value = false
   }
 }
@@ -171,5 +179,46 @@ async function checkStatus() {
   } finally {
     statusLoading.value = false
   }
+}
+
+function startPolling() {
+  setTimeout(() => {
+    pollingInterval.value = setInterval(async () => {
+      if (!currentTaskId.value || !apiKey.value) {
+        return
+      }
+      
+      try {
+        const response = await fetch('/api/image-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            task_id: currentTaskId.value,
+            api_key: apiKey.value
+          })
+        })
+        
+        const data = await response.json()
+        imageResult.value = data
+        
+        if (data.status === true || data.task_status === 'SUCCEEDED' || data.task_status === 'FAILED') {
+          imageLoading.value = false
+          if (pollingInterval.value) {
+            clearInterval(pollingInterval.value)
+            pollingInterval.value = null
+          }
+        }
+      } catch (e) {
+        imageError.value = e.message
+        imageLoading.value = false
+        if (pollingInterval.value) {
+          clearInterval(pollingInterval.value)
+          pollingInterval.value = null
+        }
+      }
+    }, 5000)
+  }, 15000)
 }
 </script>

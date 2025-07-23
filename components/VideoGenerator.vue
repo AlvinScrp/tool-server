@@ -38,6 +38,10 @@
       {{ videoError }}
     </div>
 
+    <div v-if="currentTaskId" class="mb-4 p-2 bg-gray-100 rounded">
+      <p class="text-sm">任务ID: {{ currentTaskId }}</p>
+    </div>
+
     <div v-if="videoResult" class="space-y-4">
       <div v-if="videoResult.status">
         <h3 class="font-bold text-green-600">视频生成成功！</h3>
@@ -66,6 +70,8 @@ const apiKey = ref('')
 const videoLoading = ref(false)
 const videoError = ref('')
 const videoResult = ref(null)
+const currentTaskId = ref('')
+const pollingInterval = ref(null)
 
 async function generateVideo() {
   if (!videoPrompt.value) {
@@ -86,6 +92,11 @@ async function generateVideo() {
   videoLoading.value = true
   videoError.value = ''
   videoResult.value = null
+  
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
+    pollingInterval.value = null
+  }
 
   try {
     const response = await fetch('/api/generate-video', {
@@ -101,11 +112,65 @@ async function generateVideo() {
     })
     
     const data = await response.json()
-    videoResult.value = data
+    if (data.task_id) {
+      currentTaskId.value = data.task_id
+      startPolling()
+    } else {
+      videoError.value = data.message || '生成失败'
+      videoLoading.value = false
+    }
   } catch (e) {
     videoError.value = e.message
-  } finally {
     videoLoading.value = false
   }
+}
+
+function startPolling() {
+  setTimeout(() => {
+    pollingInterval.value = setInterval(async () => {
+      if (!currentTaskId.value || !apiKey.value) {
+        return
+      }
+      
+      try {
+        const response = await fetch(`/api/video-status?task_id=${currentTaskId.value}&api_key=${apiKey.value}`)
+        const data = await response.json()
+        
+        if (data.success && data.data) {
+          const taskStatus = data.data.task_status
+          
+          if (taskStatus === 'SUCCEEDED') {
+            videoResult.value = {
+              status: true,
+              video_url: data.data.video_url,
+              message: '视频生成成功'
+            }
+            videoLoading.value = false
+            if (pollingInterval.value) {
+              clearInterval(pollingInterval.value)
+              pollingInterval.value = null
+            }
+          } else if (taskStatus === 'FAILED') {
+            videoResult.value = {
+              status: false,
+              message: data.data.message || '视频生成失败'
+            }
+            videoLoading.value = false
+            if (pollingInterval.value) {
+              clearInterval(pollingInterval.value)
+              pollingInterval.value = null
+            }
+          }
+        }
+      } catch (e) {
+        videoError.value = e.message
+        videoLoading.value = false
+        if (pollingInterval.value) {
+          clearInterval(pollingInterval.value)
+          pollingInterval.value = null
+        }
+      }
+    }, 10000)
+  }, 900000)
 }
 </script>

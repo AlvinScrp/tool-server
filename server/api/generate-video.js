@@ -69,69 +69,18 @@ export default defineEventHandler(async (event) => {
       };
     }
 
-    //步骤2：根据任务ID查询结果
     const task_id = result.output.task_id;
     
-    const checkTaskStatus = async () => {
-      const statusResponse = await axios.get(`https://dashscope.aliyuncs.com/api/v1/tasks/${task_id}`, {
-        headers: {
-          'Authorization': `Bearer ${api_key}`
-        }
-      });
-
-      return statusResponse.data;
-    };
-    //先等待120秒
-    await new Promise(resolve => setTimeout(resolve, 120000));
-
-    // 轮询等待任务完成
-    const maxAttempts = 20; // 最多轮询20次 (5分钟)
-    let attempts = 0;
-
-    while (attempts < maxAttempts) {
-      console.log('----->checkTaskStatus',attempts);
-      const statusResult = await checkTaskStatus();
-      const status = statusResult.output.task_status;
-
-      // 如果任务完成
-      if (status === 'SUCCEEDED') {
-        return {
-          video_url: statusResult.output.video_url,
-          task_id: task_id,
-          status: true,
-          message: "视频生成成功"
-        };
-      }
-
-      // 如果任务失败
-      if (status === 'FAILED') {
-        return {
-          video_url: "",
-          task_id: task_id,
-          status: false,
-          message: statusResult.output.message || "视频生成失败"
-        };
-      }
-
-      // 等待15秒后继续轮询
-      if (attempts < maxAttempts - 1) {
-        await new Promise(resolve => setTimeout(resolve, 15000));
-      }
-      attempts++;
-    }
-
-    // 超时处理
     return {
-      video_url: "",
       task_id: task_id,
-      status: false,
-      message: "视频生成超时，请稍后重试"
+      status: true,
+      message: "视频生成任务已提交"
     };
     
   } catch (error) {
     return {
       video_url: "",
-      task_id: task_id,
+      task_id: "",
       status: false,
       message: error.message
     };
