@@ -58,12 +58,18 @@ async function checkVideoStatus() {
   statusError.value = ''
   statusResult.value = null
   try {
-    const queryParams = new URLSearchParams({
-      task_id: statusTaskId.value,
-      api_key: statusApiKey.value
+    // 使用 POST 请求和 fetch
+    const response = await fetch('/api/video-status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        task_id: statusTaskId.value,
+        api_key: statusApiKey.value
+      })
     })
     
-    const response = await fetch(`/api/video-status?${queryParams}`)
     const data = await response.json()
     statusResult.value = data
   } catch (e) {

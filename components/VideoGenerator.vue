@@ -133,16 +133,26 @@ function startPolling() {
       }
       
       try {
-        const response = await fetch(`/api/video-status?task_id=${currentTaskId.value}&api_key=${apiKey.value}`)
+        const response = await fetch('/api/video-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            task_id: currentTaskId.value,
+            api_key: apiKey.value
+          })
+        })
+        
         const data = await response.json()
         
-        if (data.success && data.data) {
-          const taskStatus = data.data.task_status
+        if (data.task_status) {
+          const taskStatus = data.task_status
           
           if (taskStatus === 'SUCCEEDED') {
             videoResult.value = {
               status: true,
-              video_url: data.data.video_url,
+              video_url: data.video_url,
               message: '视频生成成功'
             }
             videoLoading.value = false
@@ -153,7 +163,7 @@ function startPolling() {
           } else if (taskStatus === 'FAILED') {
             videoResult.value = {
               status: false,
-              message: data.data.message || '视频生成失败'
+              message: data.message || '视频生成失败'
             }
             videoLoading.value = false
             if (pollingInterval.value) {

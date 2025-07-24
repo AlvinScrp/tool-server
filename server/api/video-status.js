@@ -36,9 +36,7 @@ export default defineEventHandler(async (event) => {
 
     // 只保留单次查询模式
     const result = await checkTaskStatus();
-    return {
-      success: true,
-      data: {
+    return { 
         task_id: result.output.task_id,
         task_status: result.output.task_status,
         submit_time: result.output.submit_time,
@@ -49,7 +47,7 @@ export default defineEventHandler(async (event) => {
         message: result.output.message,
         request_id: result.request_id,
         usage: result.usage
-      }
+      
     };
   } catch (error) {
     return {
