@@ -85,7 +85,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const imagePrompt = ref('一间有着精致窗户的花店，漂亮的木质门，摆放着花朵')
 const apiKey = ref('')
@@ -98,6 +98,35 @@ const imageResult = ref(null)
 const currentTaskId = ref('')
 const pollingInterval = ref(null)
 
+// 从 localStorage 加载所有输入内容
+onMounted(() => {
+  const savedData = localStorage.getItem('imageGeneratorData')
+  if (savedData) {
+    try {
+      const data = JSON.parse(savedData)
+      imagePrompt.value = data.imagePrompt || imagePrompt.value
+      apiKey.value = data.apiKey || ''
+      selectedSize.value = data.selectedSize || '1024*1024'
+      imageCount.value = data.imageCount || 1
+      currentTaskId.value = data.currentTaskId || ''
+    } catch (e) {
+      console.error('Error parsing saved image generator data:', e)
+    }
+  }
+})
+
+// 保存所有输入内容到 localStorage
+function saveToLocalStorage() {
+  const dataToSave = {
+    imagePrompt: imagePrompt.value,
+    apiKey: apiKey.value,
+    selectedSize: selectedSize.value,
+    imageCount: imageCount.value,
+    currentTaskId: currentTaskId.value
+  }
+  localStorage.setItem('imageGeneratorData', JSON.stringify(dataToSave))
+}
+
 async function generateImage() {
   if (!imagePrompt.value) {
     imageError.value = '请输入图片描述文本'
@@ -108,6 +137,9 @@ async function generateImage() {
     imageError.value = '请输入API Key'
     return
   }
+
+  // 保存输入内容到 localStorage
+  saveToLocalStorage()
 
   imageLoading.value = true
   imageError.value = ''

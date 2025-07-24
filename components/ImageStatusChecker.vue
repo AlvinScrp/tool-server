@@ -53,13 +53,36 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const statusTaskId = ref('')
 const statusApiKey = ref('')
 const statusResult = ref(null)
 const statusLoading = ref(false)
 const statusError = ref('')
+
+// 从 localStorage 加载所有输入内容
+onMounted(() => {
+  const savedData = localStorage.getItem('imageStatusCheckerData')
+  if (savedData) {
+    try {
+      const data = JSON.parse(savedData)
+      statusTaskId.value = data.statusTaskId || ''
+      statusApiKey.value = data.statusApiKey || ''
+    } catch (e) {
+      console.error('Error parsing saved image status checker data:', e)
+    }
+  }
+})
+
+// 保存所有输入内容到 localStorage
+function saveToLocalStorage() {
+  const dataToSave = {
+    statusTaskId: statusTaskId.value,
+    statusApiKey: statusApiKey.value
+  }
+  localStorage.setItem('imageStatusCheckerData', JSON.stringify(dataToSave))
+}
 
 async function checkImageStatus() {
   if (!statusTaskId.value) {
@@ -70,6 +93,10 @@ async function checkImageStatus() {
     statusError.value = '请输入 API Key'
     return
   }
+  
+  // 保存输入内容到 localStorage
+  saveToLocalStorage()
+  
   statusLoading.value = true
   statusError.value = ''
   statusResult.value = null

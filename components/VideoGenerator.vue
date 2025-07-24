@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const videoPrompt = ref('一只猫在草地上奔跑')
 const imageUrl = ref('https://cdn.translate.alibaba.com/r/wanx-demo-1.png')
@@ -72,6 +72,33 @@ const videoError = ref('')
 const videoResult = ref(null)
 const currentTaskId = ref('')
 const pollingInterval = ref(null)
+
+// 从 localStorage 加载所有输入内容
+onMounted(() => {
+  const savedData = localStorage.getItem('videoGeneratorData')
+  if (savedData) {
+    try {
+      const data = JSON.parse(savedData)
+      videoPrompt.value = data.videoPrompt || videoPrompt.value
+      imageUrl.value = data.imageUrl || imageUrl.value
+      apiKey.value = data.apiKey || ''
+      currentTaskId.value = data.currentTaskId || ''
+    } catch (e) {
+      console.error('Error parsing saved video generator data:', e)
+    }
+  }
+})
+
+// 保存所有输入内容到 localStorage
+function saveToLocalStorage() {
+  const dataToSave = {
+    videoPrompt: videoPrompt.value,
+    imageUrl: imageUrl.value,
+    apiKey: apiKey.value,
+    currentTaskId: currentTaskId.value
+  }
+  localStorage.setItem('videoGeneratorData', JSON.stringify(dataToSave))
+}
 
 async function generateVideo() {
   if (!videoPrompt.value) {
@@ -88,6 +115,9 @@ async function generateVideo() {
     videoError.value = '请输入API Key'
     return
   }
+
+  // 保存所有输入内容到 localStorage
+  saveToLocalStorage()
 
   videoLoading.value = true
   videoError.value = ''

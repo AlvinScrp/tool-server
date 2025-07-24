@@ -37,13 +37,36 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const statusTaskId = ref('f7410cf4-b2a8-44d1-a88d-ec65a11bbccc')
 const statusApiKey = ref('')
 const statusResult = ref(null)
 const statusLoading = ref(false)
 const statusError = ref('')
+
+// 从 localStorage 加载所有输入内容
+onMounted(() => {
+  const savedData = localStorage.getItem('videoStatusCheckerData')
+  if (savedData) {
+    try {
+      const data = JSON.parse(savedData)
+      statusTaskId.value = data.statusTaskId || statusTaskId.value
+      statusApiKey.value = data.statusApiKey || ''
+    } catch (e) {
+      console.error('Error parsing saved video status checker data:', e)
+    }
+  }
+})
+
+// 保存所有输入内容到 localStorage
+function saveToLocalStorage() {
+  const dataToSave = {
+    statusTaskId: statusTaskId.value,
+    statusApiKey: statusApiKey.value
+  }
+  localStorage.setItem('videoStatusCheckerData', JSON.stringify(dataToSave))
+}
 
 async function checkVideoStatus() {
   if (!statusTaskId.value) {
@@ -54,6 +77,10 @@ async function checkVideoStatus() {
     statusError.value = '请输入 API Key'
     return
   }
+  
+  // 保存所有输入内容到 localStorage
+  saveToLocalStorage()
+  
   statusLoading.value = true
   statusError.value = ''
   statusResult.value = null
