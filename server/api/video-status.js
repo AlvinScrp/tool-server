@@ -2,8 +2,8 @@ import axios from 'axios';
 
 export default defineEventHandler(async (event) => {
   try {
-    const query = getQuery(event);
-    const { task_id, api_key } = query;
+    const body = await readBody(event);
+    const { task_id, api_key } = body;
     
     if (!task_id) {
       return {
